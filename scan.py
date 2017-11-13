@@ -83,12 +83,13 @@ def sns_scan_results(s3_object, result):
         AV_STATUS_METADATA: result,
         AV_TIMESTAMP_METADATA: datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S UTC")
     }
-    sns_client = boto3.client("sns")
-    sns_client.publish(
-        TargetArn=AV_STATUS_SNS_ARN,
-        Message=json.dumps({'default': json.dumps(message)}),
-        MessageStructure="json"
-    )
+    if result == AV_STATUS_INFECTED or AV_STATUS_SNS_NOTIFY_CLEAN:
+        sns_client = boto3.client("sns")
+        sns_client.publish(
+            TargetArn=AV_STATUS_SNS_ARN,
+            Message=json.dumps({'default': json.dumps(message)}),
+            MessageStructure="json"
+        )
 
 
 def lambda_handler(event, context):
