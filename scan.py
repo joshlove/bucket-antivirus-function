@@ -40,11 +40,12 @@ def download_s3_object(s3_object, local_prefix):
     return local_path
 
 
-def set_av_metadata(s3_object, result):
+def set_av_metadata(s3_object, result, hash):
     content_type = s3_object.content_type
     metadata = s3_object.metadata
     metadata[AV_STATUS_METADATA] = result
     metadata[AV_TIMESTAMP_METADATA] = datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S UTC")
+    metadata[AV_HASH_METADATA] = hash
     s3_object.copy(
         {
             'Bucket': s3_object.bucket_name,
@@ -58,7 +59,7 @@ def set_av_metadata(s3_object, result):
     )
 
 
-def set_av_tags(s3_object, result):
+def set_av_tags(s3_object, result, hash):
     curr_tags = s3_client.get_object_tagging(Bucket=s3_object.bucket_name, Key=s3_object.key)["TagSet"]
     new_tags = copy.copy(curr_tags)
     for tag in curr_tags:
@@ -67,6 +68,7 @@ def set_av_tags(s3_object, result):
             break
     new_tags.append({"Key": AV_STATUS_METADATA, "Value": result})
     new_tags.append({"Key": AV_TIMESTAMP_METADATA, "Value": datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S UTC")})
+    new_tags.append({"Key": AV_HASH_METADATA, "Value": hash})
     s3_client.put_object_tagging(
         Bucket=s3_object.bucket_name,
         Key=s3_object.key,
@@ -99,11 +101,12 @@ def lambda_handler(event, context):
     s3_object = event_object(event)
     file_path = download_s3_object(s3_object, "/tmp")
     clamav.update_defs_from_s3(AV_DEFINITION_S3_BUCKET, AV_DEFINITION_S3_PREFIX)
+    filehash = clamav.md5_from_file(file_path)
     scan_result = clamav.scan_file(file_path)
     print("Scan of s3://%s resulted in %s\n" % (os.path.join(s3_object.bucket_name, s3_object.key), scan_result))
     if "AV_UPDATE_METADATA" in os.environ:
-        set_av_metadata(s3_object, scan_result)
-    set_av_tags(s3_object, scan_result)
+        set_av_metadata(s3_object, scan_result, filehash)
+    set_av_tags(s3_object, scan_result, filehash)
     sns_scan_results(s3_object, scan_result)
     metrics.send(env=ENV, bucket=s3_object.bucket_name, key=s3_object.key, status=scan_result)
     # Delete downloaded file to free up room on re-usable lambda function container
