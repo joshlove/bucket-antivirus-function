@@ -18,6 +18,7 @@ import copy
 import json
 import metrics
 import urllib
+import re
 from common import *
 from datetime import datetime
 
@@ -100,6 +101,9 @@ def lambda_handler(event, context):
           (start_time.strftime("%Y/%m/%d %H:%M:%S UTC")))
     s3_object = event_object(event)
     file_path = download_s3_object(s3_object, "/tmp")
+    if "AV_EXCLUDE_PATTERN" in os.environ
+        if re.search(AV_EXCLUDE_PATTERN,file_path) is not None:
+            return None
     clamav.update_defs_from_s3(AV_DEFINITION_S3_BUCKET, AV_DEFINITION_S3_PREFIX)
     filehash = clamav.md5_from_file(file_path)
     scan_result = clamav.scan_file(file_path)
@@ -108,7 +112,7 @@ def lambda_handler(event, context):
         set_av_metadata(s3_object, scan_result, filehash)
     set_av_tags(s3_object, scan_result, filehash)
     sns_scan_results(s3_object, scan_result)
-    metrics.send(env=ENV, bucket=s3_object.bucket_name, key=s3_object.key, status=scan_result)
+    metrics.send(env=ENV, bucket=s3_object.bucket_name, key=s3_object.key, status=scan_result,hash=filehash)
     # Delete downloaded file to free up room on re-usable lambda function container
     try:
         os.remove(file_path)
