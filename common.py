@@ -29,15 +29,11 @@ AV_TIMESTAMP_METADATA = os.getenv("AV_TIMESTAMP_METADATA", "av-timestamp")
 CLAMAVLIB_PATH = os.getenv("CLAMAVLIB_PATH", "./bin")
 CLAMSCAN_PATH = os.getenv("CLAMSCAN_PATH", "./bin/clamscan")
 FRESHCLAM_PATH = os.getenv("FRESHCLAM_PATH", "./bin/freshclam")
-
-#excludes - regex
 AV_EXCLUDE_PATTERN = os.getenv("AV_EXCLUDE_PATTERN")
-
-AV_DEFINITION_FILENAMES = ["main.cvd", "daily.cvd", "bytecode.cvd"]
+AV_DEFINITION_FILENAMES = ["main.cvd", "daily.cvd", "daily.cld", "bytecode.cvd"]
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
-
 
 def create_dir(path):
     if not os.path.exists(path):

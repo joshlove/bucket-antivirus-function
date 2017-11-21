@@ -101,8 +101,9 @@ def lambda_handler(event, context):
           (start_time.strftime("%Y/%m/%d %H:%M:%S UTC")))
     s3_object = event_object(event)
     file_path = download_s3_object(s3_object, "/tmp")
-    if "AV_EXCLUDE_PATTERN" in os.environ
-        if re.search(AV_EXCLUDE_PATTERN,file_path) is not None:
+    if AV_EXCLUDE_PATTERN is not None:
+        if re.search(AV_EXCLUDE_PATTERN, file_path) is not None:
+            print("File path matched exlusion pattern:%s" % AV_EXCLUDE_PATTERN)
             return None
     clamav.update_defs_from_s3(AV_DEFINITION_S3_BUCKET, AV_DEFINITION_S3_PREFIX)
     filehash = clamav.md5_from_file(file_path)
